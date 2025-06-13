@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { useAddUser } from "../hooks/useAddUser";
+import { useAddSkills } from "../hooks/useAddSkills";
 
-export default function AddUserForm() {
+export default function AddSkillsForm() {
   const [user, setUser] = useState(""); // 👈 aggiunto
   const [skill, setSkill] = useState("");
   const [level, setLevel] = useState(1);
-  const { response, loading, addSkill } = useAddUser();
+  const { response, loading, addSkill } = useAddSkills();
 
   const handleSubmit = async (e) => {
     e.preventDefault();

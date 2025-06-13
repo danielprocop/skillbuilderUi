@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { API_BASE_URL, newSkill } from "../config";
 
-export function useAddUser() {
+export function useAddSkills() {
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
 

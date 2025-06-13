@@ -6,7 +6,7 @@ export default function Home() {
       <h1 className="text-3xl font-bold mb-4">Benvenuto 👋</h1>
       <p className="mb-6">Clicca qui per aggiungere un nuovo utente</p>
       <Link
-        to="/addUser"
+        to="/skills"
         className="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700"
       >
         Vai al Form
