@@ -12,6 +12,8 @@ export default function AddSkillsForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("Submit form…");
+    toast.success("Prova");
     if (!user) {
       toast.error("Utente non autenticato");
       return;
