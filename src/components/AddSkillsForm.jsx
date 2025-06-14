@@ -1,21 +1,36 @@
 // src/components/AddSkillsForm.jsx
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { useAddSkills } from "../hooks/useAddSkills";
+import { AuthContext } from "../context/AuthContext";
+import { toast } from "react-toastify";
 
 export default function AddSkillsForm() {
+  const { user } = useContext(AuthContext);
   const [skill, setSkill] = useState("");
-  const [level, setLevel] = useState(1);
+  const [level, setLevel] = useState("");
   const { response, loading, addSkill } = useAddSkills();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!user) {
+      toast.error("Utente non autenticato");
+      return;
+    }
+    user.username;
+    // Costruisci il payload
+    const payload = { skill, level: parseInt(level, 10) };
     try {
-      // Assumendo che la Lambda legga body.name o body.skill
-      await addSkill({ name: skill, level: parseInt(level, 10) });
+      await addSkill(payload);
+      // Notifica di successo
+      toast.success("Skill aggiunta con successo");
+      // Pulisci campi
       setSkill("");
-      setLevel(1);
+      setLevel("");
+      // Eventualmente fai altre azioni con result
     } catch (err) {
-      console.error("Errore invio skill:", err);
+      // Notifica di errore, usa il messaggio se presente
+      const msg = err.message || "Errore durante l'aggiunta della skill";
+      toast.error(msg);
     }
   };
 

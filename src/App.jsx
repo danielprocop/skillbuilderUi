@@ -8,6 +8,7 @@ import SkillListPage from "./pages/SkillListPage";
 import SkillDetailPage from "./pages/SkillDetailPage";
 import NewSkillPage from "./pages/NewSkillPage";
 import EditSkillPage from "./pages/SkillFormPage";
+import { ToastContainer } from "react-toastify";
 
 function App() {
   return (
@@ -57,6 +58,17 @@ function App() {
             }
           />
         </Routes>
+        <ToastContainer
+          position="bottom-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+        />
       </AuthProvider>
     </Router>
   );
