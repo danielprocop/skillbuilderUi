@@ -7,8 +7,7 @@ import { AuthProvider } from "./context/AuthContext";
 import SkillListPage from "./pages/SkillListPage";
 import SkillDetailPage from "./pages/SkillDetailPage";
 import NewSkillPage from "./pages/NewSkillPage";
-// import SkillFormPage se usi unico per create/edit
-import EditSkillPage from "./pages/SkillFormPage"; // se usi SkillFormPage in edit
+import EditSkillPage from "./pages/SkillFormPage";
 
 function App() {
   return (

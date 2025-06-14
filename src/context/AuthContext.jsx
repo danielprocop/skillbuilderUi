@@ -1,74 +1,94 @@
-// src/context/AuthContext.jsx
-import React, { createContext, useState, useEffect } from "react";
-import {
-  signIn as amplifySignIn,
-  signOut as amplifySignOut,
-  getCurrentUser,
-  fetchUserAttributes,
-} from "aws-amplify/auth";
+import { createContext, useState, useEffect } from "react";
+import { Auth } from "aws-amplify";
+import { useNavigate } from "react-router-dom";
 
+// Crea il context
 export const AuthContext = createContext();
 
+// Provider che avvolge l’app
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null); // conterrà username, userId, ecc.
-  const [attributes, setAttributes] = useState(null); // oggetto con attributi utente
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null); // Stato dell’utente autenticato (null se non autenticato)
+  const [loading, setLoading] = useState(true); // Stato iniziale: stiamo verificando se c’è già sessione valida
+  const navigate = useNavigate();
 
+  // Alla prima render (montaggio), controlla se esiste una sessione valida da Amplify
   useEffect(() => {
-    // All’avvio, controlla utente autenticato
-    getCurrentUser()
-      .then(async (u) => {
-        setUser(u);
-        // Poi prendi gli attributi, se necessari
-        try {
-          const attrList = await fetchUserAttributes();
-          // fetchUserAttributes restituisce un array di oggetti { Name, Value }
-          const attrObj = attrList.reduce((acc, { Name, Value }) => {
-            acc[Name] = Value;
-            return acc;
-          }, {});
-          setAttributes(attrObj);
-        } catch {
-          setAttributes(null);
-        }
-      })
-      .catch(() => {
+    const checkCurrentUser = async () => {
+      try {
+        // Prova a recuperare l’utente corrente; se non autenticato, genera eccezione
+        await Auth.currentSession(); // ripristina la sessione al refresh
+        // Se arriva qui, il token è valido. Possiamo ottenere attributi user:
+        const currentUser = await Auth.currentAuthenticatedUser(); // ripristina la sessione al refresh
+        // currentUser.username o altri attributi
+        setUser({
+          username: currentUser.getUsername(),
+          attributes: currentUser.attributes, // contiene email, etc.
+        });
+      } catch {
+        // Non autenticato o token scaduto
         setUser(null);
-        setAttributes(null);
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkCurrentUser();
   }, []);
 
+  // Funzione di login
   const signIn = async (username, password) => {
-    if (!username || !password)
-      throw new Error("Username e password sono richiesti");
-    const u = await amplifySignIn({ username, password });
-    setUser(u);
-    // Dopo login, recupera anche attributi
     try {
-      const attrList = await fetchUserAttributes();
-      const attrObj = attrList.reduce((acc, { Name, Value }) => {
-        acc[Name] = Value;
-        return acc;
-      }, {});
-      setAttributes(attrObj);
-    } catch {
-      setAttributes(null);
+      // Effettua il login su Cognito
+      const userObj = await Auth.signIn(username, password);
+      // Dopo signIn, ottieni attributi o sessione:
+      const currentUser = await Auth.currentAuthenticatedUser();
+      setUser({
+        username: currentUser.getUsername(),
+        attributes: currentUser.attributes,
+      });
+      return userObj;
+    } catch (error) {
+      console.error("Errore durante signIn:", error);
+      // Propaga l’errore in modo che il componente LoginPage lo gestisca
+      throw error;
     }
-    return u;
   };
 
+  // Funzione di logout
   const signOut = async () => {
-    await amplifySignOut();
-    setUser(null);
-    setAttributes(null);
+    try {
+      await Auth.signOut();
+      setUser(null);
+      // Puoi reindirizzare a login:
+      navigate("/login");
+    } catch (error) {
+      console.error("Errore in signOut:", error);
+    }
   };
 
-  return (
-    <AuthContext.Provider
-      value={{ user, attributes, loading, signIn, signOut }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  // Funzione per ottenere header Authorization con il token corrente
+  const getAuthHeader = async () => {
+    try {
+      const session = await Auth.currentSession();
+      const idToken = session.getIdToken().getJwtToken();
+      return { Authorization: idToken };
+    } catch {
+      return {};
+    }
+  };
+
+  // Valori forniti dal context
+  const value = {
+    user,
+    loading,
+    signIn,
+    signOut,
+    getAuthHeader,
+  };
+
+  // Finché stiamo verificando la sessione, possiamo mostrare un loader o null
+  if (loading) {
+    return <div>Caricamento...</div>;
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
