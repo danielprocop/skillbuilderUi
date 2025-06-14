@@ -1,24 +1,27 @@
 // src/components/AddSkillsForm.jsx
-import React, { useState, useContext } from "react";
+import React, { useState } from "react";
 import { useAddSkills } from "../hooks/useAddSkills";
-import { AuthContext } from "../context/AuthContext";
 
 export default function AddSkillsForm() {
-  const { user } = useContext(AuthContext);
   const [skill, setSkill] = useState("");
   const [level, setLevel] = useState(1);
   const { response, loading, addSkill } = useAddSkills();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const username = user?.username; // o un ID se preferisci
-    await addSkill({ user: username, skill, level: parseInt(level, 10) });
+    try {
+      // Assumendo che la Lambda legga body.name o body.skill
+      await addSkill({ name: skill, level: parseInt(level, 10) });
+      setSkill("");
+      setLevel(1);
+    } catch (err) {
+      console.error("Errore invio skill:", err);
+    }
   };
 
   return (
     <div className="max-w-md mx-auto p-6 bg-white rounded-xl mt-10">
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Non serve campo Nome, lo prendi da user */}
         <div>
           <label className="block text-sm font-medium text-gray-700">
             Skill
