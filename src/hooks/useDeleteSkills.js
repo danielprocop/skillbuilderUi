@@ -1,16 +1,17 @@
-// src/hooks/useAddSkills.js
+// src/hooks/useDeleteSkill.js
 import { useState } from "react";
 import { API_BASE_URL, skillsEndpoint } from "../config";
 import { getAuthHeader } from "../utils/authHeader";
 
-export function useAddSkills() {
-  const [response, setResponse] = useState(null);
+export function useDeleteSkill() {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const addSkill = async (skillData) => {
+  const deleteSkill = async (id) => {
     setLoading(true);
+    setError(null);
     if (!API_BASE_URL) {
-      setResponse({ message: "Configurazione API mancante" });
+      setError("Configurazione API mancante");
       setLoading(false);
       return;
     }
@@ -19,25 +20,22 @@ export function useAddSkills() {
         "Content-Type": "application/json",
         ...(await getAuthHeader()),
       };
-      const res = await fetch(`${API_BASE_URL}${skillsEndpoint}`, {
-        method: "POST",
+      const res = await fetch(`${API_BASE_URL}${skillsEndpoint}/${id}`, {
+        method: "DELETE",
         headers,
-        body: JSON.stringify(skillData),
       });
       if (!res.ok) {
         const text = await res.text();
         throw new Error(`Errore ${res.status}: ${text}`);
       }
-      const result = await res.json();
-      setResponse(result);
-      return result;
+      return await res.json();
     } catch (err) {
-      setResponse({ message: "Errore durante l'invio", error: err.message });
+      setError(err.message || "Errore cancellazione");
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  return { response, loading, addSkill };
+  return { loading, error, deleteSkill };
 }

@@ -1,32 +1,51 @@
-// src/components/AddSkillsForm.jsx
+// src/pages/NewSkillPage.jsx
 import React, { useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAddSkills } from "../hooks/useAddSkills";
 import { AuthContext } from "../context/AuthContext";
 
-export default function AddSkillsForm() {
+export default function NewSkillPage() {
   const { user } = useContext(AuthContext);
-  const [skill, setSkill] = useState("");
+  const [skillName, setSkillName] = useState("");
   const [level, setLevel] = useState(1);
   const { response, loading, addSkill } = useAddSkills();
+  const navigate = useNavigate();
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const username = user?.username; // o un ID se preferisci
-    await addSkill({ user: username, skill, level: parseInt(level, 10) });
+    setError("");
+    if (!skillName) {
+      setError("Inserisci il nome della skill");
+      return;
+    }
+    try {
+      // payload adatta i campi che il tuo backend si aspetta
+      await addSkill({
+        user: user.username,
+        skill: skillName,
+        level: parseInt(level, 10),
+      });
+      // dopo creazione, torna alla lista o al dettaglio: qui lista
+      navigate("/skills");
+    } catch (err) {
+      setError(err.message || "Errore invio");
+    }
   };
 
   return (
     <div className="max-w-md mx-auto p-6 bg-white rounded-xl mt-10">
+      <h2 className="text-2xl font-semibold mb-4 text-center">Nuova Skill</h2>
+      {error && <p className="text-red-500 mb-2">{error}</p>}
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Non serve campo Nome, lo prendi da user */}
         <div>
           <label className="block text-sm font-medium text-gray-700">
-            Skill
+            Nome Skill
           </label>
           <input
             type="text"
-            value={skill}
-            onChange={(e) => setSkill(e.target.value)}
+            value={skillName}
+            onChange={(e) => setSkillName(e.target.value)}
             required
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
           />
@@ -56,7 +75,7 @@ export default function AddSkillsForm() {
             loading ? "bg-gray-400" : "bg-indigo-600 hover:bg-indigo-700"
           }`}
         >
-          {loading ? "Invio in corso..." : "Invia"}
+          {loading ? "Invio..." : "Crea"}
         </button>
       </form>
       {response && (
