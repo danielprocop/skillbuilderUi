@@ -55,7 +55,13 @@ export function AuthProvider({ children }) {
     // Chiama Amplify Auth.signIn
     const u = await amplifySignIn({ username, password });
     // Imposta user con l’oggetto restituito (può contenere info base)
-    setUser(u);
+    let freshUser = null;
+    try {
+      freshUser = await getCurrentUser();
+    } catch {
+      freshUser = u; // fallback se getCurrentUser fallisse, ma in genere non dovrebbe
+    }
+    setUser(freshUser);
     // Dopo login, recupera nuovamente attributi utente
     try {
       const attrList = await fetchUserAttributes();
