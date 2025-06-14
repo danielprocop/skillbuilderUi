@@ -1,26 +1,65 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
-import AddUser from "./pages/AddUser";
-import { withAuthenticator } from '@aws-amplify/ui-react';
+import LoginPage from "./pages/LoginPage";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { AuthProvider } from "./context/AuthContext";
+import SkillListPage from "./pages/SkillListPage";
+import SkillDetailPage from "./pages/SkillDetailPage";
+import NewSkillPage from "./pages/NewSkillPage";
+// import SkillFormPage se usi unico per create/edit
+import EditSkillPage from "./pages/SkillFormPage"; // se usi SkillFormPage in edit
 
-function App({ signOut, user }) {
+function App() {
   return (
-    <>
-      <header style={{ padding: "1rem", background: "#f3f3f3" }}>
-        <span>👤 {user.username}</span>
-        <button onClick={signOut} style={{ marginLeft: "1rem" }}>
-          Logout
-        </button>
-      </header>
-
+    <AuthProvider>
       <Router>
+        <Navbar />
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/skills" element={<AddUser />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/skills"
+            element={
+              <ProtectedRoute>
+                <SkillListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/skills/:id"
+            element={
+              <ProtectedRoute>
+                <SkillDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/add-skill"
+            element={
+              <ProtectedRoute>
+                <NewSkillPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/skills/:id/edit"
+            element={
+              <ProtectedRoute>
+                <EditSkillPage />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </Router>
-    </>
+    </AuthProvider>
   );
 }
-
-export default withAuthenticator(App);
+export default App;
