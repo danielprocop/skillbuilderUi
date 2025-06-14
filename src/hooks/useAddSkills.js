@@ -9,6 +9,7 @@ export function useAddSkills() {
 
   const addSkill = async (skillData) => {
     setLoading(true);
+    console.log("POST a:", `${API_BASE_URL}${skillsEndpoint}`);
     if (!API_BASE_URL) {
       setResponse({ message: "Configurazione API mancante" });
       setLoading(false);
