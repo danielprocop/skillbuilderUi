@@ -11,8 +11,8 @@ import EditSkillPage from "./pages/SkillFormPage";
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <Router>
+      <AuthProvider>
         <Navbar />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
@@ -57,8 +57,8 @@ function App() {
             }
           />
         </Routes>
-      </Router>
-    </AuthProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 export default App;
