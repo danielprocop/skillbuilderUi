@@ -1,94 +1,96 @@
 import { createContext, useState, useEffect } from "react";
-import { Auth } from "aws-amplify";
-import { useNavigate } from "react-router-dom";
+// Import delle funzioni Amplify Auth che usavi: signIn, signOut, getCurrentUser, fetchUserAttributes
+import {
+  signIn as amplifySignIn,
+  signOut as amplifySignOut,
+  getCurrentUser,
+  fetchUserAttributes,
+} from "aws-amplify/auth";
 
-// Crea il context
+// Crea il Context per l’autenticazione
 export const AuthContext = createContext();
 
-// Provider che avvolge l’app
+// Provider che avvolge l’app e fornisce user, attributi e funzioni login/logout
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null); // Stato dell’utente autenticato (null se non autenticato)
-  const [loading, setLoading] = useState(true); // Stato iniziale: stiamo verificando se c’è già sessione valida
-  const navigate = useNavigate();
+  const [attributes, setAttributes] = useState(null); // Stato degli attributi Cognito dell’utente
+  const [loading, setLoading] = useState(true); // Stato di caricamento iniziale: verifica sessione
 
-  // Alla prima render (montaggio), controlla se esiste una sessione valida da Amplify
   useEffect(() => {
-    const checkCurrentUser = async () => {
-      try {
-        // Prova a recuperare l’utente corrente; se non autenticato, genera eccezione
-        await Auth.currentSession(); // ripristina la sessione al refresh
-        // Se arriva qui, il token è valido. Possiamo ottenere attributi user:
-        const currentUser = await Auth.currentAuthenticatedUser(); // ripristina la sessione al refresh
-        // currentUser.username o altri attributi
-        setUser({
-          username: currentUser.getUsername(),
-          attributes: currentUser.attributes, // contiene email, etc.
-        });
-      } catch {
-        // Non autenticato o token scaduto
+    // All’avvio (montaggio), verifica se c’è un utente già autenticato
+    getCurrentUser()
+      .then(async (u) => {
+        // Se getCurrentUser() risolve, c’è un utente valido
+        setUser(u); // Imposta user con l’oggetto restituito
+        // Prova a recuperare gli attributi utente (es. email, nome, ecc.)
+        try {
+          const attrList = await fetchUserAttributes();
+          // fetchUserAttributes restituisce array di { Name, Value }
+          const attrObj = attrList.reduce((acc, { Name, Value }) => {
+            acc[Name] = Value;
+            return acc;
+          }, {});
+          setAttributes(attrObj); // Imposta attributi nel context
+        } catch {
+          // Se fallisce fetchUserAttributes, mantieni attributes a null
+          setAttributes(null);
+        }
+      })
+      .catch(() => {
+        // Se getCurrentUser() fallisce, significa che non c’è sessione valida
         setUser(null);
-      } finally {
+        setAttributes(null);
+      })
+      .finally(() => {
+        // In ogni caso, termina il caricamento iniziale
         setLoading(false);
-      }
-    };
-    checkCurrentUser();
-  }, []);
-
-  // Funzione di login
-  const signIn = async (username, password) => {
-    try {
-      // Effettua il login su Cognito
-      const userObj = await Auth.signIn(username, password);
-      // Dopo signIn, ottieni attributi o sessione:
-      const currentUser = await Auth.currentAuthenticatedUser();
-      setUser({
-        username: currentUser.getUsername(),
-        attributes: currentUser.attributes,
       });
-      return userObj;
-    } catch (error) {
-      console.error("Errore durante signIn:", error);
-      // Propaga l’errore in modo che il componente LoginPage lo gestisca
-      throw error;
-    }
-  };
+  }, []); // L’array vuoto fa eseguire solo al montaggio
 
-  // Funzione di logout
-  const signOut = async () => {
+  // Funzione di login esposta nel context
+  const signIn = async (username, password) => {
+    // Controllo base: username e password obbligatori
+    if (!username || !password)
+      throw new Error("Username e password sono richiesti");
+    // Chiama Amplify Auth.signIn
+    const u = await amplifySignIn({ username, password });
+    // Imposta user con l’oggetto restituito (può contenere info base)
+    setUser(u);
+    // Dopo login, recupera nuovamente attributi utente
     try {
-      await Auth.signOut();
-      setUser(null);
-      // Puoi reindirizzare a login:
-      navigate("/login");
-    } catch (error) {
-      console.error("Errore in signOut:", error);
-    }
-  };
-
-  // Funzione per ottenere header Authorization con il token corrente
-  const getAuthHeader = async () => {
-    try {
-      const session = await Auth.currentSession();
-      const idToken = session.getIdToken().getJwtToken();
-      return { Authorization: idToken };
+      const attrList = await fetchUserAttributes();
+      const attrObj = attrList.reduce((acc, { Name, Value }) => {
+        acc[Name] = Value;
+        return acc;
+      }, {});
+      setAttributes(attrObj);
     } catch {
-      return {};
+      setAttributes(null);
     }
+    return u; // Ritorna l’oggetto user per eventuali ulteriori usi
   };
 
-  // Valori forniti dal context
-  const value = {
-    user,
-    loading,
-    signIn,
-    signOut,
-    getAuthHeader,
+  // Funzione di logout esposta nel context
+  const signOut = async () => {
+    // Chiama Amplify Auth.signOut
+    await amplifySignOut();
+    // Pulisci lo stato user e attributes
+    setUser(null);
+    setAttributes(null);
+    // Nota: qui non facciamo navigate; gestisci il redirect nel componente che chiama signOut
   };
 
-  // Finché stiamo verificando la sessione, possiamo mostrare un loader o null
+  // Se siamo ancora in fase di caricamento iniziale, mostra un loader
   if (loading) {
     return <div>Caricamento...</div>;
   }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  // Provider espone user, attributes, loading (ormai false), signIn, signOut
+  return (
+    <AuthContext.Provider
+      value={{ user, attributes, loading, signIn, signOut }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
