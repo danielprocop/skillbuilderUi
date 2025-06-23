@@ -1,24 +1,14 @@
-// src/pages/SkillListPage.jsx
-import React, { useState, useMemo } from "react";
+import { useState, useMemo, useContext } from "react";
 import { Link } from "react-router-dom";
 import { useFetchSkills } from "../hooks/useFetchSkills";
 import { ChevronUp, ChevronDown } from "lucide-react";
+import { AuthContext } from "../context/AuthContext";
 
 export default function SkillListPage() {
-  const { data: skills, loading, error, refetch } = useFetchSkills();
-
+  const { userId, loading: authLoading } = useContext(AuthContext);
+  const { data: skills, loading, error, refetch } = useFetchSkills(userId);
   const [sortField, setSortField] = useState(null); // 'skill' | 'level' | 'acquired_on'
   const [sortOrder, setSortOrder] = useState("asc"); // 'asc' o 'desc'
-
-  // Funzione per gestire click su header: toggle se stesso, altrimenti set nuovo con asc
-  const handleSort = (field) => {
-    if (sortField === field) {
-      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSortField(field);
-      setSortOrder("asc");
-    }
-  };
 
   // Funzione per parsare la data "DD/MM/YYYY" in oggetto Date
   const parseDate = (str) => {
@@ -75,15 +65,6 @@ export default function SkillListPage() {
       </div>
     );
 
-  if (!Array.isArray(skills) || skills.length === 0) {
-    return (
-      <div className="p-6">
-        <h2 className="text-2xl font-semibold mb-4">Elenco Skill</h2>
-        <p>Nessuna skill trovata.</p>
-      </div>
-    );
-  }
-
   // Helper per render icona freccia
   const renderSortIcon = (field) => {
     if (sortField !== field) return null;
@@ -93,6 +74,33 @@ export default function SkillListPage() {
       <ChevronDown className="inline-block w-4 h-4 ml-1" />
     );
   };
+  // Se stai ancora verificando l’autenticazione, mostra loader
+  if (authLoading) {
+    return <p className="p-4">Verifica autenticazione...</p>;
+  }
+  // Se non esiste userId, significa che non è autenticato o attributi non caricati
+  if (!userId) {
+    return <p className="p-4">Utente non autenticato.</p>;
+  }
+
+  // Funzione per gestire click su header: toggle se stesso, altrimenti set nuovo con asc
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortOrder("asc");
+    }
+  };
+
+  if (!Array.isArray(skills) || skills.length === 0) {
+    return (
+      <div className="p-6">
+        <h2 className="text-2xl font-semibold mb-4">Elenco Skill</h2>
+        <p>Nessuna skill trovata.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">

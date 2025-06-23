@@ -18,7 +18,6 @@ export default function AddSkillsForm() {
       toast.error("Utente non autenticato");
       return;
     }
-    user.username;
     // Costruisci il payload
     const payload = { skill, level: parseInt(level, 10) };
     try {

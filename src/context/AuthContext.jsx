@@ -18,31 +18,79 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     // All’avvio (montaggio), verifica se c’è un utente già autenticato
+    console.log("AuthProvider: inizio verifica utente");
     getCurrentUser()
       .then(async (u) => {
         // Se getCurrentUser() risolve, c’è un utente valido
+        console.log("AuthProvider: getCurrentUser ha restituito:", u);
         setUser(u); // Imposta user con l’oggetto restituito
         // Prova a recuperare gli attributi utente (es. email, nome, ecc.)
         try {
           const attrList = await fetchUserAttributes();
-          // fetchUserAttributes restituisce array di { Name, Value }
-          const attrObj = attrList.reduce((acc, { Name, Value }) => {
-            acc[Name] = Value;
-            return acc;
-          }, {});
-          setAttributes(attrObj); // Imposta attributi nel context
-        } catch {
-          // Se fallisce fetchUserAttributes, mantieni attributes a null
+          console.log(
+            "AuthProvider: fetchUserAttributes restituito:",
+            attrList
+          );
+
+          let attrObj = null;
+
+          if (Array.isArray(attrList)) {
+            // array di { Name, Value }
+            attrObj = attrList.reduce((acc, { Name, Value }) => {
+              acc[Name] = Value;
+              return acc;
+            }, {});
+          } else if (attrList && typeof attrList === "object") {
+            // se è un oggetto, potrebbe avere proprietà che contengono l’array
+            if (Array.isArray(attrList.Attributes)) {
+              attrObj = attrList.Attributes.reduce((acc, { Name, Value }) => {
+                acc[Name] = Value;
+                return acc;
+              }, {});
+            } else if (Array.isArray(attrList.UserAttributes)) {
+              attrObj = attrList.UserAttributes.reduce(
+                (acc, { Name, Value }) => {
+                  acc[Name] = Value;
+                  return acc;
+                },
+                {}
+              );
+            } else {
+              // potrebbe essere un oggetto piatto { sub: "...", email: "...", ... }
+              const maybeAttrs = {};
+              let count = 0;
+              for (const [k, v] of Object.entries(attrList)) {
+                if (typeof v === "string") {
+                  maybeAttrs[k] = v;
+                  count++;
+                }
+              }
+              if (count > 0) {
+                attrObj = maybeAttrs;
+              } else {
+                console.warn("Formato attributi inatteso:", attrList);
+              }
+            }
+          } else {
+            console.warn(
+              "fetchUserAttributes ha restituito tipo inatteso:",
+              attrList
+            );
+          }
+
+          setAttributes(attrObj);
+        } catch (err) {
+          console.warn("AuthProvider: fetchUserAttributes ha fallito:", err);
           setAttributes(null);
         }
       })
-      .catch(() => {
-        // Se getCurrentUser() fallisce, significa che non c’è sessione valida
+      .catch((err) => {
+        console.log("AuthProvider: nessun utente autenticato:", err);
         setUser(null);
         setAttributes(null);
       })
       .finally(() => {
-        // In ogni caso, termina il caricamento iniziale
+        console.log("AuthProvider: caricamento iniziale completato");
         setLoading(false);
       });
   }, []); // L’array vuoto fa eseguire solo al montaggio
@@ -65,12 +113,14 @@ export function AuthProvider({ children }) {
     // Dopo login, recupera nuovamente attributi utente
     try {
       const attrList = await fetchUserAttributes();
+      console.log("AuthProvider: fetchUserAttributes ha restituito:", attrList);
       const attrObj = attrList.reduce((acc, { Name, Value }) => {
         acc[Name] = Value;
         return acc;
       }, {});
       setAttributes(attrObj);
-    } catch {
+    } catch (err) {
+      console.warn("AuthProvider: fetchUserAttributes ha fallito:", err);
       setAttributes(null);
     }
     return u; // Ritorna l’oggetto user per eventuali ulteriori usi
@@ -91,10 +141,20 @@ export function AuthProvider({ children }) {
     return <div>Caricamento...</div>;
   }
 
+  const providedUserId = user?.userId ?? attributes?.sub ?? null;
+  console.log("AuthProvider: userId =", providedUserId);
+
   // Provider espone user, attributes, loading (ormai false), signIn, signOut
   return (
     <AuthContext.Provider
-      value={{ user, attributes, loading, signIn, signOut }}
+      value={{
+        user,
+        userId: providedUserId,
+        attributes,
+        loading,
+        signIn,
+        signOut,
+      }}
     >
       {children}
     </AuthContext.Provider>

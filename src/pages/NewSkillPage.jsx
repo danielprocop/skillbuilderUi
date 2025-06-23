@@ -22,7 +22,7 @@ export default function NewSkillPage() {
     try {
       // payload adatta i campi che il tuo backend si aspetta
       await addSkill({
-        user: user.username,
+        user: user.userId,
         skill: skillName,
         level: parseInt(level, 10),
       });

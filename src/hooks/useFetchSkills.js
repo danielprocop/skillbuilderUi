@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { API_BASE_URL, skillsEndpoint } from "../config";
 import { getAuthHeader } from "../utils/authHeader";
 
-export function useFetchSkills() {
+export function useFetchSkills(userId) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -21,10 +21,13 @@ export function useFetchSkills() {
         "Content-Type": "application/json",
         ...(await getAuthHeader()),
       };
-      const res = await fetch(`${API_BASE_URL}${skillsEndpoint}`, {
-        method: "GET",
-        headers,
-      });
+      const res = await fetch(
+        `${API_BASE_URL}${skillsEndpoint}?user=${userId}`,
+        {
+          method: "GET",
+          headers,
+        }
+      );
       if (!res.ok) throw new Error(`Errore ${res.status}`);
       const json = await res.json();
       setData(json);
